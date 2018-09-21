@@ -65,6 +65,7 @@
 
 <body>
     <h1 style="cursor: pointer;" onclick="addNode();">+</h1>
+    <h1 style="cursor: pointer;" onclick="addNode('true');">++</h1>
     <div>
 
     </div>
@@ -147,7 +148,8 @@
             .attr('d', 'M0,0L0,0');
 
         let path = svg.append('svg:g').selectAll('path');
-        let circle = svg.append('svg:g').attr('id','circle').selectAll('g');
+        let circle = svg.append('svg:g').attr('id', 'circle').selectAll('g');
+        let rectangle = svg.append('svg:g').attr('id', 'rectangle').selectAll('g');
 
         let selectedNode = null;
         let selectedLink = null;
@@ -180,6 +182,7 @@
                 return `M${sourceX},${sourceY}L${targetX},${targetY}`;
             });
             circle.attr('transform', (d) => `translate(${d.x},${d.y})`);
+            rectangle.attr('transform', (d) => `translate(${d.x},${d.y})`);
         }
 
 
@@ -218,21 +221,34 @@
             let circleIds = nodes.filter((data) => {
                 return data.type === CIRCLE;
             })
+            let rectIds = nodes.filter((data) => {
+                return data.type === RECTANGLE;
+            })
             circle = circle.data(circleIds);
+
+            rectangle = rectangle.data(rectIds);
 
             // update existing nodes (reflexive & selected visual states)
             circle.selectAll('circle')
                 .style('fill', (d) => (d === selectedNode) ? d3.rgb(colors(d.id)).brighter().toString() : colors(d.id))
                 .classed('reflexive', (d) => d.reflexive);
 
+
+            rectangle.selectAll('rectangle')
+                .style('fill', (d) => (d === selectedNode) ? d3.rgb(colors(d.id)).brighter().toString() : colors(d.id))
+                .classed('reflexive', (d) => d.reflexive);
+
             // remove old nodes
             circle.exit().remove();
 
-            // add new nodes
-            const g = circle.enter().append('svg:g');
+            rectangle.exit().remove();
 
-            g.append('svg:circle')
+            // add new nodes
+            const cg = circle.enter().append('svg:g');
+
+            cg.append('svg:circle')
                 .attr('class', 'node')
+                .attr('eltype', CIRCLE)
                 .attr('r', 12)
                 .style('fill', (d) => (d === selectedNode) ? d3.rgb(colors(d.id)).brighter().toString() : colors(d.id))
                 .style('stroke', (d) => d3.rgb(colors(d.id)).darker().toString())
@@ -250,7 +266,7 @@
                 .on('mousedown', (d) => {
                     if (d3.event.ctrlKey) return;
 
-                    // select node
+                    // select node  
                     mousedownNode = d;
                     selectedNode = (mousedownNode === selectedNode) ? null : mousedownNode;
                     selectedLink = null;
@@ -286,12 +302,11 @@
                     const isRight = mousedownNode.id < mouseupNode.id;
                     const source = isRight ? mousedownNode : mouseupNode;
                     const target = isRight ? mouseupNode : mousedownNode;
-
                     const link = links.filter((l) => l.source === source && l.target === target)[0];
                     if (link) {
                         link[isRight ? 'right' : 'left'] = true;
                     } else {
-                        links.push({ source, target, left: !isRight, right: isRight });
+                        links.push({ source, target, left: !isRight, right: isRight, type: d3.select(this).attr('eltype') });
                     }
 
                     // select new link
@@ -301,17 +316,102 @@
                 });
 
             // show node IDs
-            g.append('svg:text')
+            cg.append('svg:text')
                 .attr('x', 0)
                 .attr('y', 4)
                 .attr('class', 'id')
                 .text((d) => d.id);
 
-            circle = g.merge(circle);
+            circle = cg.merge(circle);
+
+
+            /// rect below
+
+            const rg = rectangle.enter().append('svg:g');
+
+            rg.append('svg:rect')
+                .attr('class', 'node')
+                .attr('eltype', RECTANGLE)
+                .attr('width', 30)
+                .attr('height', 30)
+                .style('fill', (d) => (d === selectedNode) ? d3.rgb(colors(d.id)).brighter().toString() : colors(d.id))
+                .style('stroke', (d) => d3.rgb(colors(d.id)).darker().toString())
+                .classed('reflexive', (d) => d.reflexive)
+                .on('mouseover', function (d) {
+                    if (!mousedownNode || d === mousedownNode) return;
+                    // enlarge target node
+                    d3.select(this).attr('transform', 'scale(1.1)');
+                })
+                .on('mouseout', function (d) {
+                    if (!mousedownNode || d === mousedownNode) return;
+                    // unenlarge target node
+                    d3.select(this).attr('transform', '');
+                })
+                .on('mousedown', (d) => {
+                    if (d3.event.ctrlKey) return;
+
+                    // select node  
+                    mousedownNode = d;
+                    selectedNode = (mousedownNode === selectedNode) ? null : mousedownNode;
+                    selectedLink = null;
+
+                    // reposition drag line
+                    dragLine
+                        .style('marker-end', 'url(#end-arrow)')
+                        .classed('hidden', false)
+                        .attr('d', `M${mousedownNode.x},${mousedownNode.y}L${mousedownNode.x},${mousedownNode.y}`);
+
+                    restart();
+                })
+                .on('mouseup', function (d) {
+                    if (!mousedownNode) return;
+
+                    // needed by FF
+                    dragLine
+                        .classed('hidden', true)
+                        .style('marker-end', '');
+
+                    // check for drag-to-self
+                    mouseupNode = d;
+                    if (mouseupNode === mousedownNode) {
+                        resetMouseVars();
+                        return;
+                    }
+
+                    // unenlarge target node
+                    d3.select(this).attr('transform', '');
+
+                    // add link to graph (update if exists)
+                    // NB: links are strictly source < target; arrows separately specified by booleans
+                    const isRight = mousedownNode.id < mouseupNode.id;
+                    const source = isRight ? mousedownNode : mouseupNode;
+                    const target = isRight ? mouseupNode : mousedownNode;
+                    const link = links.filter((l) => l.source === source && l.target === target)[0];
+                    if (link) {
+                        link[isRight ? 'right' : 'left'] = true;
+                    } else {
+                        links.push({ source, target, left: !isRight, right: isRight, type: d3.select(this).attr('eltype') });
+                    }
+
+                    // select new link
+                    selectedLink = link;
+                    selectedNode = null;
+                    restart();
+                });
+
+            // show node IDs
+            rg.append('svg:text')
+                .attr('x', 15)
+                .attr('y', 17)
+                .attr('class', 'id')
+                .text((d) => d.id);
+
+            rectangle = rg.merge(rectangle);
+
 
             // set the graph in motion
-            console.log(nodes)
-            console.log(links)
+            // console.log(nodes)
+            // console.log(links)
             force
                 .nodes(nodes)
                 .force('link').links(links);
@@ -326,22 +426,34 @@
             if (d3.event.ctrlKey || mousedownNode || mousedownLink) return;
 
             // insert new node at point
-            const point = d3.mouse(this);
-            const node = { id: ++lastNodeId, reflexive: false, x: point[0], y: point[1], type: CIRCLE };
-            nodes.push(node);
+            // const point = d3.mouse(this);
+            // const node = { id: ++lastNodeId, reflexive: false, x: point[0], y: point[1], type: CIRCLE };
+            // nodes.push(node);
 
-            restart();
+            // restart();
         }
 
-        function addNode() {
-            let node;
-            if (nodes.length === 0) {
-                node = { id: ++lastNodeId, reflexive: false, x: width / 2, y: height / 4, type: CIRCLE };
+        function addNode(square) {
+            if (square) {
+                let node;
+                if (nodes.length === 0) {
+                    node = { id: ++lastNodeId, reflexive: false, x: width / 2, y: height / 4, type: RECTANGLE };
+                } else {
+                    node = { id: ++lastNodeId, reflexive: false, x: nodes[nodes.length - 1].x + 50, y: nodes[nodes.length - 1].y + 50, type: RECTANGLE };
+                }
+                nodes.push(node);
+                restart();
             } else {
-                node = { id: ++lastNodeId, reflexive: false, x: nodes[nodes.length - 1].x + 50, y: nodes[nodes.length - 1].y + 50, type: CIRCLE };
+                let node;
+                if (nodes.length === 0) {
+                    node = { id: ++lastNodeId, reflexive: false, x: width / 2, y: height / 4, type: CIRCLE };
+                } else {
+                    node = { id: ++lastNodeId, reflexive: false, x: nodes[nodes.length - 1].x + 50, y: nodes[nodes.length - 1].y + 50, type: CIRCLE };
+                }
+                nodes.push(node);
+                restart();
             }
-            nodes.push(node);
-            restart();
+
         }
 
         function mousemove() {
