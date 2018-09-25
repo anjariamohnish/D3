@@ -1,4 +1,5 @@
 <html>
+<!--http://plnkr.co/edit/S4UJlGHxcyQWlh5WM6zj?p=preview-->
 
 <head>
     <title></title>
@@ -19,26 +20,26 @@
         cursor: crosshair;
     }
 
-    path.link {
+    line.link {
         fill: none;
         stroke: #000;
         stroke-width: 4px;
         cursor: default;
     }
 
-    svg:not(.active):not(.ctrl) path.link {
+    svg:not(.active):not(.ctrl) line.link {
         cursor: pointer;
     }
 
-    path.link.selected {
+    line.link.selected {
         stroke-dasharray: 10, 2;
     }
 
-    path.link.dragline {
+    line.link.dragline {
         pointer-events: none;
     }
 
-    path.link.hidden {
+    line.link.hidden {
         stroke-width: 0;
     }
 
@@ -74,7 +75,7 @@
 </style>
 
 <body>
-    <h1 style="cursor: pointer;" onclick="addNode();">+</h1>
+    <!-- <h1 style="cursor: pointer;" onclick="addNode();">+</h1> -->
     <h1 style="cursor: pointer;" onclick="addNode('true');">++</h1>
     <div>
 
@@ -100,14 +101,14 @@
 
         const drag = d3.drag()
             .on('start', (d) => {
-
-
             })
             .on('drag', (d) => {
-
+                d3.select('#node' + d.id)
+                    .attr('transform', (d) => `translate(${d3.event.x},${d3.event.y})`);
+                nodes[d.id].x = d3.event.x;
+                nodes[d.id].y = d3.event.y;
             })
             .on('end', (d) => {
-
             });
 
 
@@ -137,7 +138,7 @@
             .attr('class', 'link dragline hidden')
             .attr('d', 'M0,0L0,0');
 
-        let path = svg.append('svg:g').selectAll('path');
+        let line = svg.append('svg:g').selectAll('line');
         let circle = svg.append('svg:g').attr('id', 'circle').selectAll('g');
         let rectangle = svg.append('svg:g').attr('id', 'rectangle').selectAll('g');
 
@@ -155,6 +156,37 @@
 
 
         function update() {
+
+
+            line = line.data(links);
+
+            line.classed('selected', (d) => d === selectedLink)
+                .style('marker-start', (d) => d.left ? 'url(#start-arrow)' : '')
+                .style('marker-end', (d) => d.right ? 'url(#end-arrow)' : '');
+
+            line.exit().remove();
+
+            line = line.enter().append('svg:line')
+                .attr('data-start', (d) => { return d.start; })
+                .attr('data-stop', (d) => { return d.stop; })
+                .attr('x1', (d) => { return d.x1; })
+                .attr('y1', (d) => { return d.y1; })
+                .attr('x2', (d) => { return d.x2; })
+                .attr('y2', (d) => { return d.y2; })
+                .attr('class', 'link')
+                .classed('selected', (d) => d === selectedLink)
+                .style('marker-start', (d) => d.left ? 'url(#start-arrow)' : '')
+                .style('marker-end', (d) => d.right ? 'url(#end-arrow)' : '')
+                .on('mousedown', (d) => {
+                    if (d3.event.ctrlKey) return;
+
+                    // select link
+                    mousedownLink = d;
+                    selectedLink = (mousedownLink === selectedLink) ? null : mousedownLink;
+                    selectedNode = null;
+                    // restart();
+                })
+                .merge(line);
 
 
             let circleIds = nodes.filter((data) => {
@@ -182,6 +214,7 @@
 
 
             const cg = circle.enter().append('svg:g');
+            cg.attr('id', (d) => 'node' + d.id);
             cg.attr('transform', (d) => `translate(${d.x},${d.y})`);
             cg.append('svg:circle')
                 .attr('class', 'node')
@@ -231,6 +264,17 @@
                     }
                     // unenlarge target node
                     d3.select(this).attr('transform', '');
+                    console.log(nodes)
+                    links.push({
+                        start: 'node' + mousedownNode.id,
+                        stop: 'node' + d.id,
+                        x1: getMidCoordinates(mousedownNode.id).x,
+                        y1: getMidCoordinates(mousedownNode.id).y,
+                        x2: getMidCoordinates(d.id).x,
+                        y2: getMidCoordinates(d.id).y,
+                        isRight: true
+                    })
+                    console.log(links)
                     // restart();
                 });
 
@@ -245,6 +289,7 @@
 
 
             const rg = rectangle.enter().append('svg:g');
+            rg.attr('id', (d) => 'node' + d.id);
             rg.attr('transform', (d) => `translate(${d.x},${d.y})`);
             rg.append('svg:rect')
                 .attr('class', 'node')
@@ -295,9 +340,18 @@
                     // unenlarge target node
                     d3.select(this).attr('transform', '');
 
-                    // select new link
-                    selectedLink = link;
-                    selectedNode = null;
+                    links.push({
+                        start: 'node' + mousedownNode.id,
+                        stop: 'node' + d.id,
+                        x1: getMidCoordinates(mousedownNode.id).x,
+                        y1: getMidCoordinates(mousedownNode.id).y,
+                        x2: getMidCoordinates(d.id).x,
+                        y2: getMidCoordinates(d.id).y,
+                        isRight: true
+                    })
+
+                    console.log(links)
+                    update();
                     // restart();
                 });
 
@@ -313,21 +367,14 @@
 
         }
 
-        function mousedown() {
-            // because :active only works in WebKit?
-            svg.classed('active', true);
-            if (d3.event.ctrlKey || mousedownNode || mousedownLink) return;
-
-            // restart();
-        }
 
         function addNode(rect) {
             if (rect) {
                 let node;
                 if (nodes.length === 0) {
-                    node = { id: ++lastNodeId, x: width / 2, y: height / 4, type: RECTANGLE };
+                    node = { id: ++lastNodeId, height: rectangleHeight, width: rectangleWidth, x: width / 2, y: height / 4, type: RECTANGLE };
                 } else {
-                    node = { id: ++lastNodeId, x: nodes[nodes.length - 1].x + 50, y: nodes[nodes.length - 1].y + 50, type: RECTANGLE };
+                    node = { id: ++lastNodeId, height: rectangleHeight, width: rectangleWidth, x: nodes[nodes.length - 1].x + 50, y: nodes[nodes.length - 1].y + 50, type: RECTANGLE };
                 }
                 nodes.push(node);
                 update();
@@ -342,6 +389,14 @@
                 update();
             }
 
+        }
+
+        function mousedown() {
+            // because :active only works in WebKit?
+            svg.classed('active', true);
+            if (d3.event.ctrlKey || mousedownNode || mousedownLink) return;
+
+            // restart();
         }
 
         function mousemove() {
@@ -422,6 +477,13 @@
             .on('keydown', keydown)
             .on('keyup', keyup);
 
+
+        function getMidCoordinates(id) {
+            const node = nodes[id];
+            const x = node.width / 2.0 + node.x,
+                y = node.height / 2.0 + node.y;
+            return { x: x, y: y };
+        }
 
     </script>
 </body>
