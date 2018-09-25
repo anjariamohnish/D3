@@ -1,0 +1,429 @@
+<html>
+
+<head>
+    <title></title>
+</head>
+<script src="https://d3js.org/d3.v4.min.js"></script>
+<style>
+    svg {
+        background-color: #FFF;
+        cursor: default;
+        -webkit-user-select: none;
+        -moz-user-select: none;
+        -ms-user-select: none;
+        -o-user-select: none;
+        user-select: none;
+    }
+
+    svg:not(.active):not(.ctrl) {
+        cursor: crosshair;
+    }
+
+    path.link {
+        fill: none;
+        stroke: #000;
+        stroke-width: 4px;
+        cursor: default;
+    }
+
+    svg:not(.active):not(.ctrl) path.link {
+        cursor: pointer;
+    }
+
+    path.link.selected {
+        stroke-dasharray: 10, 2;
+    }
+
+    path.link.dragline {
+        pointer-events: none;
+    }
+
+    path.link.hidden {
+        stroke-width: 0;
+    }
+
+    circle.node {
+        stroke-width: 1.5px;
+        cursor: pointer;
+    }
+
+    rect.node {
+        stroke-width: 1.5px;
+        cursor: pointer;
+    }
+
+    rect.node.reflexive {
+        stroke: #000 !important;
+        stroke-width: 2.5px;
+    }
+
+    circle.node.reflexive {
+        stroke: #000 !important;
+        stroke-width: 2.5px;
+    }
+
+    text {
+        font: 12px sans-serif;
+        pointer-events: none;
+    }
+
+    text.id {
+        text-anchor: middle;
+        font-weight: bold;
+    }
+</style>
+
+<body>
+    <h1 style="cursor: pointer;" onclick="addNode();">+</h1>
+    <h1 style="cursor: pointer;" onclick="addNode('true');">++</h1>
+    <div>
+
+    </div>
+    <script>
+        const CIRCLE = 'circle', RECTANGLE = 'rectangle';
+        const width = window.innerWidth - 100;
+        const height = 800;
+        const rectangleWidth = 40;
+        const rectangleHeight = 40;
+        const colors = d3.scaleOrdinal(d3.schemeCategory10);
+
+        const svg = d3.select('div')
+            .append('svg')
+            .attr('oncontextmenu', 'return false;')
+            .attr('width', width)
+            .attr('height', height);
+
+        const nodes = [];
+        let lastNodeId = -1;
+        const links = [];
+
+
+        const drag = d3.drag()
+            .on('start', (d) => {
+
+
+            })
+            .on('drag', (d) => {
+
+            })
+            .on('end', (d) => {
+
+            });
+
+
+        svg.append('svg:defs').append('svg:marker')
+            .attr('id', 'end-arrow')
+            .attr('viewBox', '0 -5 10 10')
+            .attr('refX', 6)
+            .attr('markerWidth', 3)
+            .attr('markerHeight', 3)
+            .attr('orient', 'auto')
+            .append('svg:path')
+            .attr('d', 'M0,-5L10,0L0,5')
+            .attr('fill', '#000');
+
+        svg.append('svg:defs').append('svg:marker')
+            .attr('id', 'start-arrow')
+            .attr('viewBox', '0 -5 10 10')
+            .attr('refX', 4)
+            .attr('markerWidth', 3)
+            .attr('markerHeight', 3)
+            .attr('orient', 'auto')
+            .append('svg:path')
+            .attr('d', 'M10,-5L0,0L10,5')
+            .attr('fill', '#000');
+
+        const dragLine = svg.append('svg:path')
+            .attr('class', 'link dragline hidden')
+            .attr('d', 'M0,0L0,0');
+
+        let path = svg.append('svg:g').selectAll('path');
+        let circle = svg.append('svg:g').attr('id', 'circle').selectAll('g');
+        let rectangle = svg.append('svg:g').attr('id', 'rectangle').selectAll('g');
+
+        let selectedNode = null;
+        let selectedLink = null;
+        let mousedownLink = null;
+        let mousedownNode = null;
+        let mouseupNode = null;
+
+        function resetMouseVars() {
+            mousedownNode = null;
+            mouseupNode = null;
+            mousedownLink = null;
+        }
+
+
+        function update() {
+
+
+            let circleIds = nodes.filter((data) => {
+                return data.type === CIRCLE;
+            })
+
+            let rectangleIds = nodes.filter((data) => {
+                return data.type === RECTANGLE;
+            })
+
+            circle = circle.data(circleIds);
+            rectangle = rectangle.data(rectangleIds);
+
+            circle.selectAll('circle')
+                .style('fill', (d) => (d === selectedNode) ? d3.rgb(colors(d.id)).brighter().toString() : colors(d.id))
+                .classed('reflexive', (d) => d.reflexive);
+
+            rectangle.selectAll('rect')
+                .style('fill', (d) => (d === selectedNode) ? d3.rgb(colors(d.id)).brighter().toString() : colors(d.id))
+                .classed('reflexive', (d) => d.reflexive);
+
+            circle.exit().remove();
+
+            rectangle.exit().remove();
+
+
+            const cg = circle.enter().append('svg:g');
+            cg.attr('transform', (d) => `translate(${d.x},${d.y})`);
+            cg.append('svg:circle')
+                .attr('class', 'node')
+                .attr('eltype', CIRCLE)
+                .attr('r', 20)
+                .style('fill', (d) => (d === selectedNode) ? d3.rgb(colors(d.id)).brighter().toString() : colors(d.id))
+                .style('stroke', (d) => d3.rgb(colors(d.id)).darker().toString())
+                .classed('reflexive', (d) => d.reflexive)
+                .on('mouseover', function (d) {
+                    if (!mousedownNode || d === mousedownNode) return;
+                    // enlarge target node
+                    d3.select(this).attr('transform', 'scale(1.1)');
+                })
+                .on('mouseout', function (d) {
+                    if (!mousedownNode || d === mousedownNode) return;
+                    // unenlarge target node
+                    d3.select(this).attr('transform', '');
+                })
+                .on('mousedown', (d) => {
+                    if (d3.event.ctrlKey) return;
+
+                    // select node  
+                    mousedownNode = d;
+                    selectedNode = (mousedownNode === selectedNode) ? null : mousedownNode;
+                    selectedLink = null;
+                    // reposition drag line
+                    dragLine
+                        .style('marker-end', 'url(#end-arrow)')
+                        .classed('hidden', false)
+                        .attr('d', `M${mousedownNode.x},${mousedownNode.y}L${mousedownNode.x},${mousedownNode.y}`);
+
+                    update();
+                })
+                .on('mouseup', function (d) {
+                    if (!mousedownNode) return;
+
+                    // needed by FF
+                    dragLine
+                        .classed('hidden', true)
+                        .style('marker-end', '');
+
+                    // check for drag-to-self
+                    mouseupNode = d;
+                    if (mouseupNode === mousedownNode) {
+                        resetMouseVars();
+                        return;
+                    }
+                    // unenlarge target node
+                    d3.select(this).attr('transform', '');
+                    // restart();
+                });
+
+            // show node IDs
+            cg.append('svg:text')
+                .attr('x', 0)
+                .attr('y', 4)
+                .attr('class', 'id')
+                .text((d) => d.id);
+
+            circle = cg.merge(circle);
+
+
+            const rg = rectangle.enter().append('svg:g');
+            rg.attr('transform', (d) => `translate(${d.x},${d.y})`);
+            rg.append('svg:rect')
+                .attr('class', 'node')
+                .attr('eltype', RECTANGLE)
+                .attr('width', rectangleWidth)
+                .attr('height', rectangleHeight)
+                .style('fill', (d) => (d === selectedNode) ? d3.rgb(colors(d.id)).brighter().toString() : colors(d.id))
+                .style('stroke', (d) => d3.rgb(colors(d.id)).darker().toString())
+                .classed('reflexive', (d) => d.reflexive)
+                .on('mouseover', function (d) {
+                    if (!mousedownNode || d === mousedownNode) return;
+                    // enlarge target node
+                    d3.select(this).attr('transform', 'scale(1.1)');
+                })
+                .on('mouseout', function (d) {
+                    if (!mousedownNode || d === mousedownNode) return;
+                    // unenlarge target node
+                    d3.select(this).attr('transform', '');
+                })
+                .on('mousedown', (d) => {
+                    if (d3.event.ctrlKey) return;
+                    // select node  
+                    mousedownNode = d;
+                    selectedNode = (mousedownNode === selectedNode) ? null : mousedownNode;
+                    selectedLink = null;
+
+                    // reposition drag line
+                    dragLine
+                        .style('marker-end', 'url(#end-arrow)')
+                        .classed('hidden', false)
+                        .attr('d', `M${mousedownNode.x},${mousedownNode.y}L${mousedownNode.x},${mousedownNode.y}`);
+
+                    // restart();
+                })
+                .on('mouseup', function (d) {
+                    if (!mousedownNode) return;
+                    // needed by FF
+                    dragLine
+                        .classed('hidden', true)
+                        .style('marker-end', '');
+
+                    // check for drag-to-self
+                    mouseupNode = d;
+                    if (mouseupNode === mousedownNode) {
+                        resetMouseVars();
+                        return;
+                    }
+                    // unenlarge target node
+                    d3.select(this).attr('transform', '');
+
+                    // select new link
+                    selectedLink = link;
+                    selectedNode = null;
+                    // restart();
+                });
+
+            // show node IDs
+            rg.append('svg:text')
+                .attr('x', 20)
+                .attr('y', 22)
+                .attr('class', 'id')
+                .text((d) => d.id);
+
+            rectangle = rg.merge(rectangle);
+
+
+        }
+
+        function mousedown() {
+            // because :active only works in WebKit?
+            svg.classed('active', true);
+            if (d3.event.ctrlKey || mousedownNode || mousedownLink) return;
+
+            // restart();
+        }
+
+        function addNode(rect) {
+            if (rect) {
+                let node;
+                if (nodes.length === 0) {
+                    node = { id: ++lastNodeId, x: width / 2, y: height / 4, type: RECTANGLE };
+                } else {
+                    node = { id: ++lastNodeId, x: nodes[nodes.length - 1].x + 50, y: nodes[nodes.length - 1].y + 50, type: RECTANGLE };
+                }
+                nodes.push(node);
+                update();
+            } else {
+                let node;
+                if (nodes.length === 0) {
+                    node = { id: ++lastNodeId, x: width / 2, y: height / 4, type: CIRCLE };
+                } else {
+                    node = { id: ++lastNodeId, x: nodes[nodes.length - 1].x + 50, y: nodes[nodes.length - 1].y + 50, type: CIRCLE };
+                }
+                nodes.push(node);
+                update();
+            }
+
+        }
+
+        function mousemove() {
+            if (!mousedownNode) return;
+
+            // update drag line
+
+            dragLine.attr('d', `M${mousedownNode.x},${mousedownNode.y}L${d3.mouse(this)[0]},${d3.mouse(this)[1]}`);
+
+            // restart();
+        }
+
+        function mouseup() {
+            if (mousedownNode) {
+                // hide drag line
+                dragLine
+                    .classed('hidden', true)
+                    .style('marker-end', '');
+            }
+
+            // because :active only works in WebKit?
+            svg.classed('active', false);
+
+            // clear mouse event vars
+            resetMouseVars();
+        }
+
+        function spliceLinksForNode(node) {
+            const toSplice = links.filter((l) => l.source === node || l.target === node);
+            for (const l of toSplice) {
+                links.splice(links.indexOf(l), 1);
+            }
+        }
+
+        // only respond once per keydown
+        let lastKeyDown = -1;
+
+        function keydown() {
+            d3.event.preventDefault();
+            if (lastKeyDown !== -1) return;
+            lastKeyDown = d3.event.keyCode;
+            // ctrl
+            if (d3.event.keyCode === 17) {
+                circle.call(drag);
+                rectangle.call(drag);
+                svg.classed('ctrl', true);
+            }
+            if (!selectedNode && !selectedLink) return;
+            switch (d3.event.keyCode) {
+                case 8: // backspace
+                case 46: // delete
+                    if (selectedNode) {
+                        nodes.splice(nodes.indexOf(selectedNode), 1);
+                        spliceLinksForNode(selectedNode);
+                    } else if (selectedLink) {
+                        links.splice(links.indexOf(selectedLink), 1);
+                    }
+                    selectedLink = null;
+                    selectedNode = null;
+                    break;
+            }
+        }
+
+        function keyup() {
+            lastKeyDown = -1;
+            // ctrl
+            if (d3.event.keyCode === 17) {
+                circle.on('.drag', null);
+                rectangle.on('.drag', null);
+                svg.classed('ctrl', false);
+            }
+        }
+
+        svg.on('mousedown', mousedown)
+            .on('mousemove', mousemove)
+            .on('mouseup', mouseup);
+        d3.select(window)
+            .on('keydown', keydown)
+            .on('keyup', keyup);
+
+
+    </script>
+</body>
+
+</html>

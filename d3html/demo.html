@@ -89,7 +89,7 @@
 
         const svg = d3.select('div')
             .append('svg')
-            .attr('oncontextmenu', 'return false;')
+            // .attr('oncontextmenu', 'return false;')
             .attr('width', width)
             .attr('height', height);
 
@@ -198,13 +198,13 @@
                     const dist = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
                     const normX = deltaX / dist;
                     const normY = deltaY / dist;
-                    const sourcePadding = d.left ? 17 : 20;
-                    const targetPadding = d.right ? 5 : 5;
+                    const sourcePadding = 0;
+                    const targetPadding = 0;
                     const sourceX = d.source.x + (sourcePadding * normX);
                     const sourceY = d.source.y + (sourcePadding * normY);
                     const targetX = d.target.x - (targetPadding * normX);
                     const targetY = d.target.y - (targetPadding * normY);
-                    return `M${sourceX},${sourceY}L${targetX},${targetY}`;
+                    return `M${sourceX + 20},${sourceY + 20}L${targetX},${targetY}`;
                 }
             });
             circle.attr('transform', (d) => `translate(${d.x},${d.y})`);
@@ -250,8 +250,8 @@
             let rectIds = nodes.filter((data) => {
                 return data.type === RECTANGLE;
             })
-            circle = circle.data(circleIds);
-
+                circle = circle.data(circleIds);
+                
             rectangle = rectangle.data(rectIds);
 
             // update existing nodes (reflexive & selected visual states)
