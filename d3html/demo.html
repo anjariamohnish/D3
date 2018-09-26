@@ -1,5 +1,6 @@
 <html>
-    <!-- http://bl.ocks.org/rkirsling/5001347 -->
+<!-- http://bl.ocks.org/rkirsling/5001347 -->
+
 <head>
     <title></title>
 </head>
@@ -185,8 +186,8 @@
                     const dist = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
                     const normX = deltaX / dist;
                     const normY = deltaY / dist;
-                    const sourcePadding = d.left ? 25 : 10;
-                    const targetPadding = d.right ? 25 : 10;
+                    const sourcePadding = 0;
+                    const targetPadding = 0;
                     const sourceX = d.source.x + (sourcePadding * normX);
                     const sourceY = d.source.y + (sourcePadding * normY);
                     const targetX = d.target.x - (targetPadding * normX);
@@ -204,7 +205,7 @@
                     const sourceY = d.source.y + (sourcePadding * normY);
                     const targetX = d.target.x - (targetPadding * normX);
                     const targetY = d.target.y - (targetPadding * normY);
-                    return `M${sourceX + 20},${sourceY + 20}L${targetX+20},${targetY+20}`;
+                    return `M${sourceX + 20},${sourceY + 20}L${targetX + 20},${targetY + 20}`;
                 }
             });
             circle.attr('transform', (d) => `translate(${d.x},${d.y})`);
@@ -250,7 +251,7 @@
             let rectIds = nodes.filter((data) => {
                 return data.type === RECTANGLE;
             })
-                circle = circle.data(circleIds);
+            circle = circle.data(circleIds);
 
             rectangle = rectangle.data(rectIds);
 
