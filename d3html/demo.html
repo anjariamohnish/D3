@@ -204,7 +204,7 @@
                     const sourceY = d.source.y + (sourcePadding * normY);
                     const targetX = d.target.x - (targetPadding * normX);
                     const targetY = d.target.y - (targetPadding * normY);
-                    return `M${sourceX + 20},${sourceY + 20}L${targetX},${targetY}`;
+                    return `M${sourceX + 20},${sourceY + 20}L${targetX+20},${targetY+20}`;
                 }
             });
             circle.attr('transform', (d) => `translate(${d.x},${d.y})`);
@@ -593,140 +593,6 @@
             .on('keydown', keydown)
             .on('keyup', keyup);
         restart();
-
-        ///// Below
-        function Point(x, y) {
-            if (!(this instanceof Point)) {
-                return new Point(x, y)
-            }
-            this.x = x
-            this.y = y
-        }
-        Point.add = function (a, b) {
-            return Point(a.x + b.x, a.y + b.y)
-        }
-        Point.sub = function (a, b) {
-            return Point(a.x - b.x, a.y - b.y)
-        }
-        Point.cross = function (a, b) {
-            return a.x * b.y - a.y * b.x;
-        }
-        Point.scale = function (a, k) {
-            return Point(a.x * k, a.y * k)
-        }
-        Point.unit = function (a) {
-            return Point.scale(a, 1 / Point.norm(a))
-        }
-        Point.norm = function (a) {
-            return Math.sqrt(a.x * a.x + a.y * a.y)
-        }
-        Point.eq = function (a, b) {
-            return Math.abs(a.x - b.x) < 1e-6 &&
-                Math.abs(a.y - b.y) < 1e-6
-        }
-
-        function pointInSegment(s, p) {
-            var a = s[0]
-            var b = s[1]
-            return Math.abs(Point.cross(Point.sub(p, a), Point.sub(b, a))) < 1e-6 &&
-                Math.min(a.x, b.x) <= p.x && p.x <= Math.max(a.x, b.x) &&
-                Math.min(a.y, b.y) <= p.y && p.y <= Math.max(a.y, b.y)
-        }
-
-        function lineLineIntersection(s1, s2) {
-            var a = s1[0]
-            var b = s1[1]
-            var c = s2[0]
-            var d = s2[1]
-            var v1 = Point.sub(b, a)
-            var v2 = Point.sub(d, c)
-            if (Math.abs(Point.cross(v1, v2)) < 1e-6) {
-                // collinear
-                return null
-            }
-            var kNum = Point.cross(
-                Point.sub(c, a),
-                Point.sub(d, c)
-            )
-            var kDen = Point.cross(
-                Point.sub(b, a),
-                Point.sub(d, c)
-            )
-            var ip = Point.add(
-                a,
-                Point.scale(
-                    Point.sub(b, a),
-                    Math.abs(kNum / kDen)
-                )
-            )
-            return ip
-        }
-
-        function segmentSegmentIntersection(s1, s2) {
-            var ip = lineLineIntersection(s1, s2)
-            if (ip && pointInSegment(s1, ip) && pointInSegment(s2, ip)) {
-                return ip
-            }
-        }
-
-        function boxSegmentIntersection(box, lineSegment) {
-            var data = box.data()[0]
-            var topLeft = Point(data.x, data.y)
-            var topRight = Point(data.x + data.width, data.y)
-            var botLeft = Point(data.x, data.y + data.height)
-            var botRight = Point(data.x + data.width, data.y + data.height)
-            var boxSegments = [
-                // top
-                [topLeft, topRight],
-                // bot
-                [botLeft, botRight],
-                // left
-                [topLeft, botLeft],
-                // right
-                [topRight, botRight]
-            ]
-            console.log(boxSegments);
-            var ip
-            for (var i = 0; !ip && i < 4; i += 1) {
-                ip = segmentSegmentIntersection(boxSegments[i], lineSegment)
-            }
-            return ip
-        }
-
-        function boxCenter(a) {
-            var data = a.data()[0]
-            return Point(
-                data.x + data.width / 2,
-                data.y + data.height / 2
-            )
-        }
-
-        function buildSegmentThroughCenters(a, b) {
-            return [boxCenter(a), boxCenter(b)]
-        }
-
-        // should return {x1, y1, x2, y2}
-        function getIntersection(a, b) {
-            var segment = buildSegmentThroughCenters(a, b)
-            var ia = boxSegmentIntersection(a, segment)
-            var ib = boxSegmentIntersection(b, segment)
-            if (ia && ib && !Point.eq(ia, ib)) {
-
-                // problem: the arrows are drawn after the intersection with the box
-                // solution: move the arrow toward the other end
-
-                var unitV = Point.unit(Point.sub(ib, ia))
-                // k = the width of the marker
-                var k = 18
-                ib = Point.sub(ib, Point.scale(unitV, k))
-                return {
-                    x1: ia.x,
-                    y1: ia.y,
-                    x2: ib.x,
-                    y2: ib.y
-                }
-            }
-        }
 
     </script>
 </body>
