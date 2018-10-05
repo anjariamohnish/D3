@@ -5,6 +5,7 @@
     <title></title>
 </head>
 <script src="https://d3js.org/d3.v4.min.js"></script>
+<script src="./saveSvgAsPng.js"></script>
 <style>
     svg {
         background-color: #FFF;
@@ -77,6 +78,7 @@
 <body>
     <h1 style="cursor: pointer;" onclick="addNode();">+</h1>
     <h1 style="cursor: pointer;" onclick="addNode('true');">++</h1>
+    <h4 style="cursor: pointer;" onclick="createImage()">IMG</h4>
     <div>
 
     </div>
@@ -90,6 +92,7 @@
 
         const svg = d3.select('div')
             .append('svg')
+            .attr('id', 'svg')
             // .attr('oncontextmenu', 'return false;')
             .attr('width', width)
             .attr('height', height);
@@ -588,6 +591,14 @@
             .on('keydown', keydown)
             .on('keyup', keyup);
         restart();
+
+
+
+        // code for download img
+
+        function createImage() {
+            saveSvgAsPng(document.getElementById("svg"), Math.floor(Date.now() / 1000) + ".png", { backgroundColor: 'white' });
+        }
 
     </script>
 </body>
