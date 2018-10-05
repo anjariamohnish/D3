@@ -6,6 +6,7 @@
 </head>
 <script src="https://d3js.org/d3.v4.min.js"></script>
 <script src="./saveSvgAsPng.js"></script>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
 <style>
     svg {
         background-color: #FFF;
@@ -79,6 +80,7 @@
     <h1 style="cursor: pointer;" onclick="addNode();">+</h1>
     <h1 style="cursor: pointer;" onclick="addNode('true');">++</h1>
     <h4 style="cursor: pointer;" onclick="createImage()">IMG</h4>
+    <h4 style="cursor: pointer;" onclick="copyHTML()">CopyHTML</h4>
     <div>
 
     </div>
@@ -93,30 +95,42 @@
         const svg = d3.select('div')
             .append('svg')
             .attr('id', 'svg')
-            // .attr('oncontextmenu', 'return false;')
+            /* .attr('oncontextmenu', 'return false;')*/
             .attr('width', width)
             .attr('height', height);
 
 
         const nodes = [
-            // { id: 0, reflexive: false },
-            // { id: 1, reflexive: true },
-            // { id: 2, reflexive: false }
+            /*{ id: 0, reflexive: false },
+             { id: 1, reflexive: true },
+             { id: 2, reflexive: false }*/
         ];
 
         let lastNodeId = -1;
 
         const links = [
-            // { source: nodes[0], target: nodes[1], left: false, right: true },
-            // { source: nodes[1], target: nodes[2], left: false, right: true }
+            /* { source: nodes[0], target: nodes[1], left: false, right: true },
+             { source: nodes[1], target: nodes[2], left: false, right: true }*/
         ];
-
+        if (typeof oldNodes !== 'undefined') {
+            JSON.parse(JSON.stringify(oldNodes)).forEach(element => {
+                nodes.push(element);
+            });
+            lastNodeId = nodes.length - 1;
+        }
+        if (typeof oldLinks !== 'undefined') {
+            JSON.parse(JSON.stringify(oldLinks)).forEach(element => {
+                links.push(element);
+            });
+        }
+        console.log(links);
+        console.log(nodes);
 
         const force = d3.forceSimulation()
             .force('link', d3.forceLink().id((d) => d.id).distance(150))
-            // .force('charge', d3.forceManyBody().strength(-300))
-            // .force('x', d3.forceX(width / 2))
-            // .force('y', d3.forceY(height / 4))
+            /* .force('charge', d3.forceManyBody().strength(-300))
+             .force('x', d3.forceX(width / 2))
+             .force('y', d3.forceY(height / 4))*/
             .on('tick', tick);
 
 
@@ -132,8 +146,8 @@
             })
             .on('end', (d) => {
                 if (!d3.event.active) force.alphaTarget(0);
-                // d.fx = null; commented for sticky nodes
-                // d.fy = null; commented for sticky nodes
+                /* d.fx = null; commented for sticky nodes*/
+                /* d.fy = null; commented for sticky nodes*/
             });
 
 
@@ -181,7 +195,7 @@
 
 
         function tick() {
-            // draw directed edges with proper padding from node centers
+            /* draw directed edges with proper padding from node centers*/
             path.attr('d', (d) => {
                 const deltaX = d.target.x - d.source.x;
                 const deltaY = d.target.y - d.source.y;
@@ -211,18 +225,18 @@
 
 
         function restart() {
-            // path (link) group
+            /*path (link) group*/
             path = path.data(links);
 
-            // update existing links
+            /*update existing links*/
             path.classed('selected', (d) => d === selectedLink)
                 .style('marker-start', (d) => d.left ? 'url(#start-arrow)' : '')
                 .style('marker-end', (d) => d.right ? 'url(#end-arrow)' : '');
 
-            // remove old links
+            /* remove old links*/
             path.exit().remove();
 
-            // add new links
+            /* add new links*/
             path = path.enter().append('svg:path')
                 .attr('class', 'link')
                 .classed('selected', (d) => d === selectedLink)
@@ -231,7 +245,7 @@
                 .on('mousedown', (d) => {
                     if (d3.event.ctrlKey) return;
 
-                    // select link
+                    /* select link*/
                     mousedownLink = d;
                     selectedLink = (mousedownLink === selectedLink) ? null : mousedownLink;
                     selectedNode = null;
@@ -239,8 +253,8 @@
                 })
                 .merge(path);
 
-            // circle (node) group
-            // NB: the function arg is crucial here! nodes are known by id, not by index!
+            /* circle (node) group
+             NB: the function arg is crucial here! nodes are known by id, not by index!*/
 
             let circleIds = nodes.filter((data) => {
                 return data.type === CIRCLE;
@@ -252,7 +266,7 @@
 
             rectangle = rectangle.data(rectIds);
 
-            // update existing nodes (reflexive & selected visual states)
+            /*update existing nodes (reflexive & selected visual states)*/
             circle.selectAll('circle')
                 .style('fill', (d) => (d === selectedNode) ? d3.rgb(colors(d.id)).brighter().toString() : colors(d.id))
                 .classed('reflexive', (d) => d.reflexive);
@@ -261,12 +275,12 @@
                 .style('fill', (d) => (d === selectedNode) ? d3.rgb(colors(d.id)).brighter().toString() : colors(d.id))
                 .classed('reflexive', (d) => d.reflexive);
 
-            // remove old nodes
+            /* remove old nodes*/
             circle.exit().remove();
 
             rectangle.exit().remove();
 
-            // add new nodes
+            /* add new nodes*/
             const cg = circle.enter().append('svg:g');
 
             cg.append('svg:circle')
@@ -278,22 +292,22 @@
                 .classed('reflexive', (d) => d.reflexive)
                 .on('mouseover', function (d) {
                     if (!mousedownNode || d === mousedownNode) return;
-                    // enlarge target node
+                    /* enlarge target node*/
                     d3.select(this).attr('transform', 'scale(1.1)');
                 })
                 .on('mouseout', function (d) {
                     if (!mousedownNode || d === mousedownNode) return;
-                    // unenlarge target node
+                    /* unenlarge target node*/
                     d3.select(this).attr('transform', '');
                 })
                 .on('mousedown', (d) => {
                     if (d3.event.ctrlKey) return;
 
-                    // select node  
+                    /* select node  */
                     mousedownNode = d;
                     selectedNode = (mousedownNode === selectedNode) ? null : mousedownNode;
                     selectedLink = null;
-                    // reposition drag line
+                    /* reposition drag line*/
                     dragLine
                         .style('marker-end', 'url(#end-arrow)')
                         .classed('hidden', false)
@@ -304,23 +318,23 @@
                 .on('mouseup', function (d) {
                     if (!mousedownNode) return;
 
-                    // needed by FF
+                    /* needed by FF*/
                     dragLine
                         .classed('hidden', true)
                         .style('marker-end', '');
 
-                    // check for drag-to-self
+                    /* check for drag-to-self*/
                     mouseupNode = d;
                     if (mouseupNode === mousedownNode) {
                         resetMouseVars();
                         return;
                     }
 
-                    // unenlarge target node
+                    /* unenlarge target node*/
                     d3.select(this).attr('transform', '');
 
-                    // add link to graph (update if exists)
-                    // NB: links are strictly source < target; arrows separately specified by booleans
+                    /* add link to graph (update if exists)
+                     NB: links are strictly source < target; arrows separately specified by booleans*/
                     const isRight = mousedownNode.id < mouseupNode.id;
                     const source = isRight ? mousedownNode : mouseupNode;
                     const target = isRight ? mouseupNode : mousedownNode;
@@ -331,13 +345,13 @@
                         links.push({ source, target, left: !isRight, right: isRight, type: d3.select(this).attr('eltype') });
                     }
 
-                    // select new link
+                    /* select new link*/
                     selectedLink = link;
                     selectedNode = null;
                     restart();
                 });
 
-            // show node IDs
+            /*show node IDs*/
             cg.append('svg:text')
                 .attr('x', 0)
                 .attr('y', 4)
@@ -347,7 +361,7 @@
             circle = cg.merge(circle);
 
 
-            /// rect below
+            /* rect below*/
 
             const rg = rectangle.enter().append('svg:g');
 
@@ -361,22 +375,22 @@
                 .classed('reflexive', (d) => d.reflexive)
                 .on('mouseover', function (d) {
                     if (!mousedownNode || d === mousedownNode) return;
-                    // enlarge target node
+                    /* enlarge target node*/
                     d3.select(this).attr('transform', 'scale(1.1)');
                 })
                 .on('mouseout', function (d) {
                     if (!mousedownNode || d === mousedownNode) return;
-                    // unenlarge target node
+                    /* unenlarge target node*/
                     d3.select(this).attr('transform', '');
                 })
                 .on('mousedown', (d) => {
                     if (d3.event.ctrlKey) return;
-                    // select node  
+                    /*select node  */
                     mousedownNode = d;
                     selectedNode = (mousedownNode === selectedNode) ? null : mousedownNode;
                     selectedLink = null;
 
-                    // reposition drag line
+                    /*reposition drag line*/
                     dragLine
                         .style('marker-end', 'url(#end-arrow)')
                         .classed('hidden', false)
@@ -386,23 +400,23 @@
                 })
                 .on('mouseup', function (d) {
                     if (!mousedownNode) return;
-                    // needed by FF
+                    /* needed by FF*/
                     dragLine
                         .classed('hidden', true)
                         .style('marker-end', '');
 
-                    // check for drag-to-self
+                    /* check for drag-to-self*/
                     mouseupNode = d;
                     if (mouseupNode === mousedownNode) {
                         resetMouseVars();
                         return;
                     }
 
-                    // unenlarge target node
+                    /* unenlarge target node*/
                     d3.select(this).attr('transform', '');
 
-                    // add link to graph (update if exists)
-                    // NB: links are strictly source < target; arrows separately specified by booleans
+                    /* add link to graph (update if exists)
+                     NB: links are strictly source < target; arrows separately specified by booleans*/
                     const isRight = mousedownNode.id < mouseupNode.id;
                     const source = isRight ? mousedownNode : mouseupNode;
                     const target = isRight ? mouseupNode : mousedownNode;
@@ -413,13 +427,13 @@
                         links.push({ source, target, left: !isRight, right: isRight, type: d3.select(this).attr('eltype') });
                     }
 
-                    // select new link
+                    /* select new link*/
                     selectedLink = link;
                     selectedNode = null;
                     restart();
                 });
 
-            // show node IDs
+            /*show node IDs*/
             rg.append('svg:text')
                 .attr('x', 20)
                 .attr('y', 22)
@@ -429,9 +443,9 @@
             rectangle = rg.merge(rectangle);
 
 
-            // set the graph in motion
-            // console.log(nodes)
-            // console.log(links)
+            /* set the graph in motion
+             console.log(nodes)
+             console.log(links)*/
             force
                 .nodes(nodes)
                 .force('link').links(links);
@@ -440,16 +454,16 @@
         }
 
         function mousedown() {
-            // because :active only works in WebKit?
+            /* because :active only works in WebKit?*/
             svg.classed('active', true);
             if (d3.event.ctrlKey || mousedownNode || mousedownLink) return;
 
-            // insert new node at point
-            // const point = d3.mouse(this);
-            // const node = { id: ++lastNodeId, reflexive: false, x: point[0], y: point[1], type: CIRCLE };
-            // nodes.push(node);
+            /* insert new node at point
+             const point = d3.mouse(this);
+             const node = { id: ++lastNodeId, reflexive: false, x: point[0], y: point[1], type: CIRCLE };
+            nodes.push(node);
 
-            // restart();
+            restart();*/
         }
 
         function addNode(square) {
@@ -478,7 +492,7 @@
         function mousemove() {
             if (!mousedownNode) return;
 
-            // update drag line
+            /* update drag line*/
             if (mousedownNode.type === RECTANGLE) {
                 dragLine.attr('d', `M${mousedownNode.x + rectangleWidth / 2},${mousedownNode.y + rectangleHeight / 2}L${d3.mouse(this)[0]},${d3.mouse(this)[1]}`);
             } else {
@@ -491,16 +505,16 @@
 
         function mouseup() {
             if (mousedownNode) {
-                // hide drag line
+                /* hide drag line*/
                 dragLine
                     .classed('hidden', true)
                     .style('marker-end', '');
             }
 
-            // because :active only works in WebKit?
+            /* because :active only works in WebKit?*/
             svg.classed('active', false);
 
-            // clear mouse event vars
+            /* clear mouse event vars*/
             resetMouseVars();
         }
 
@@ -511,7 +525,7 @@
             }
         }
 
-        // only respond once per keydown
+        /* only respond once per keydown*/
         let lastKeyDown = -1;
 
         function keydown() {
@@ -520,7 +534,7 @@
             if (lastKeyDown !== -1) return;
             lastKeyDown = d3.event.keyCode;
 
-            // ctrl
+            /* ctrl*/
             if (d3.event.keyCode === 17) {
                 circle.call(drag);
                 rectangle.call(drag);
@@ -530,8 +544,8 @@
             if (!selectedNode && !selectedLink) return;
 
             switch (d3.event.keyCode) {
-                case 8: // backspace
-                case 46: // delete
+                case 8: /* backspace*/
+                case 46: /* delete*/
                     if (selectedNode) {
                         nodes.splice(nodes.indexOf(selectedNode), 1);
                         spliceLinksForNode(selectedNode);
@@ -542,28 +556,28 @@
                     selectedNode = null;
                     restart();
                     break;
-                case 66: // B
+                case 66: /* B*/
                     if (selectedLink) {
-                        // set link direction to both left and right
+                        /* set link direction to both left and right*/
                         selectedLink.left = true;
                         selectedLink.right = true;
                     }
                     restart();
                     break;
-                case 76: // L
+                case 76: /* L*/
                     if (selectedLink) {
-                        // set link direction to left only
+                        /* set link direction to left only*/
                         selectedLink.left = true;
                         selectedLink.right = false;
                     }
                     restart();
                     break;
-                case 82: // R
+                case 82: /* R*/
                     if (selectedNode) {
-                        // toggle node reflexivity
+                        /* toggle node reflexivity*/
                         selectedNode.reflexive = !selectedNode.reflexive;
                     } else if (selectedLink) {
-                        // set link direction to right only
+                        /* set link direction to right only*/
                         selectedLink.left = false;
                         selectedLink.right = true;
                     }
@@ -575,7 +589,7 @@
         function keyup() {
             lastKeyDown = -1;
 
-            // ctrl
+            /* ctrl  */
             if (d3.event.keyCode === 17) {
                 circle.on('.drag', null);
                 rectangle.on('.drag', null);
@@ -583,7 +597,7 @@
             }
         }
 
-        // app starts here
+        /* app starts here */
         svg.on('mousedown', mousedown)
             .on('mousemove', mousemove)
             .on('mouseup', mouseup);
@@ -594,10 +608,29 @@
 
 
 
-        // code for download img
+        /* code for download img */
 
         function createImage() {
             saveSvgAsPng(document.getElementById("svg"), Math.floor(Date.now() / 1000) + ".png", { backgroundColor: 'white' });
+        }
+
+        /* code for copy html */
+        function copyHTML() {
+            console.log(links)
+            const svgScript = $("<div />").append($('script').clone()[3]).html();
+            const styleScript = $("<div />").append($('style').clone()).html();
+            const template = `<html><head><\/head>${styleScript}<script src="https://d3js.org/d3.v4.min.js"><\/script><script>const oldLinks=${JSON.stringify(links)};const oldNodes=${JSON.stringify(nodes)};<\/script><body><div></div>${svgScript}<\/body><\/html>`;
+
+            console.log(template);
+
+            // console.log(document.documentElement)
+            // const html = document.documentElement.innerHTML;
+            // const dummy = document.createElement("input");
+            // document.body.appendChild(dummy);
+            // dummy.setAttribute('value', html);
+            // dummy.select();
+            // document.execCommand("copy");
+            // document.body.removeChild(dummy);
         }
 
     </script>
