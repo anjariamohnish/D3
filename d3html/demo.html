@@ -8,6 +8,10 @@
 <script src="./saveSvgAsPng.js"></script>
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
 <style>
+    .none {
+        pointer-events: none;
+    }
+
     svg {
         background-color: #FFF;
         cursor: default;
@@ -112,19 +116,6 @@
             /* { source: nodes[0], target: nodes[1], left: false, right: true },
              { source: nodes[1], target: nodes[2], left: false, right: true }*/
         ];
-        if (typeof oldNodes !== 'undefined') {
-            JSON.parse(JSON.stringify(oldNodes)).forEach(element => {
-                nodes.push(element);
-            });
-            lastNodeId = nodes.length - 1;
-        }
-        if (typeof oldLinks !== 'undefined') {
-            JSON.parse(JSON.stringify(oldLinks)).forEach(element => {
-                links.push(element);
-            });
-        }
-        console.log(links);
-        console.log(nodes);
 
         const force = d3.forceSimulation()
             .force('link', d3.forceLink().id((d) => d.id).distance(150))
@@ -617,20 +608,21 @@
         /* code for copy html */
         function copyHTML() {
             console.log(links)
-            const svgScript = $("<div />").append($('script').clone()[3]).html();
+            // const svgScript = $("<div />").append($('script').clone()[3]).html();
             const styleScript = $("<div />").append($('style').clone()).html();
-            const template = `<html><head><\/head>${styleScript}<script src="https://d3js.org/d3.v4.min.js"><\/script><script>const oldLinks=${JSON.stringify(links)};const oldNodes=${JSON.stringify(nodes)};<\/script><body><div></div>${svgScript}<\/body><\/html>`;
+            const svgScript = $("<div />").append($('svg').clone()).html();
+            const template = `<html><head><\/head>${styleScript}<body class="none"><div>${svgScript}</div><\/body><\/html>`;
 
             console.log(template);
 
             // console.log(document.documentElement)
-            // const html = document.documentElement.innerHTML;
-            // const dummy = document.createElement("input");
-            // document.body.appendChild(dummy);
-            // dummy.setAttribute('value', html);
-            // dummy.select();
-            // document.execCommand("copy");
-            // document.body.removeChild(dummy);
+            const html = document.documentElement.innerHTML;
+            const dummy = document.createElement("input");
+            document.body.appendChild(dummy);
+            dummy.setAttribute('value', template);
+            dummy.select();
+            document.execCommand("copy");
+            document.body.removeChild(dummy);
         }
 
     </script>
