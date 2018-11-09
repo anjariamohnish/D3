@@ -607,11 +607,9 @@
 
         /* code for copy html */
         function copyHTML() {
-            console.log(links)
-            // const svgScript = $("<div />").append($('script').clone()[3]).html();
             const styleScript = $("<div />").append($('style').clone()).html();
-            const svgScript = $("<div />").append($('svg').clone()).html();
-            const template = `<html><head><\/head>${styleScript}<body class="none"><div>${svgScript}</div><\/body><\/html>`;
+            const svgData = $("<div />").append($('svg').clone()).html();
+            const template = `<html><head><\/head>${styleScript}<body class="none"><div>${svgData}</div><\/body><\/html>`;
 
             console.log(template);
 
