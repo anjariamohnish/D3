@@ -67,7 +67,10 @@
 </head>
 
 <body>
-    <button onclick="addNode()">Add</button>
+    <button onclick="addNode('video')">Add Video</button>
+    <button onclick="addNode('blog')">Add Blog</button>
+    <button onclick="addNode('article')">Add Article</button>
+    <button onclick="addNode('tutorial')">Add Tutorial</button>
     <div>
 
     </div>
@@ -78,15 +81,6 @@
     const width = 960;
     const height = 500;
     const colors = d3.scaleOrdinal(d3.schemeCategory10);
-    let videoIcon = null;
-    d3.xml('./video-play-button.svg')
-        .then((data) => {
-            videoIcon = data
-        })
-        .catch((err) => {
-            console.log(err)
-        });
-
     const svg = d3.select('div')
         .append('svg')
         .attr('oncontextmenu', 'return false;')
@@ -171,6 +165,44 @@
         .attr('background-repeat', 'no-repeat')
         .attr('background-attachment', ' fixed')
 
+    svg.append('svg:defs').append('svg:pattern')
+        .attr('id', 'blogIcon')
+        .attr('width', 40)
+        .attr('height', 40)
+        .append('svg:image')
+        .attr("xlink:href", './blogger.svg')
+        .attr('x', 10)
+        .attr('y', 10)
+        .attr('width', 40)
+        .attr('height', 40)
+        .attr('background-repeat', 'no-repeat')
+        .attr('background-attachment', ' fixed')
+
+    svg.append('svg:defs').append('svg:pattern')
+        .attr('id', 'articleIcon')
+        .attr('width', 40)
+        .attr('height', 40)
+        .append('svg:image')
+        .attr("xlink:href", './article.svg')
+        .attr('x', 10)
+        .attr('y', 10)
+        .attr('width', 40)
+        .attr('height', 40)
+        .attr('background-repeat', 'no-repeat')
+        .attr('background-attachment', ' fixed')
+
+    svg.append('svg:defs').append('svg:pattern')
+        .attr('id', 'tutorialIcon')
+        .attr('width', 40)
+        .attr('height', 40)
+        .append('svg:image')
+        .attr("xlink:href", './tutorial.svg')
+        .attr('x', 10)
+        .attr('y', 10)
+        .attr('width', 40)
+        .attr('height', 40)
+        .attr('background-repeat', 'no-repeat')
+        .attr('background-attachment', ' fixed')
 
     // line displayed when dragging new nodes
     const dragLine = svg.append('svg:path')
@@ -252,7 +284,8 @@
 
         // update existing nodes (reflexive & selected visual states)
         circle.selectAll('circle')
-            .style('fill', 'url("#videoIcon")')
+            // .style('fill', 'url("#videoIcon")')
+            .style('fill', (d) => getIcon(d.type))
             .classed('reflexive', (d) => d.reflexive);
 
         // remove old nodes
@@ -264,7 +297,8 @@
         g.append('svg:circle')
             .attr('class', 'node')
             .attr('r', 30)
-            .style('fill', 'url("#videoIcon")')
+            // .style('fill', 'url("#videoIcon")')
+            .style('fill', (d) => getIcon(d.type))
             .style('stroke', (d) => d3.rgb(colors(d.id)).darker().toString())
             .classed('reflexive', (d) => d.reflexive)
             .on('mouseover', function (d) {
@@ -336,7 +370,7 @@
             .attr('x', 0)
             .attr('y', 4)
             .attr('class', 'id')
-            // .text((d) => d.id);
+        // .text((d) => d.id);
 
         circle = g.merge(circle);
 
@@ -362,13 +396,28 @@
         // restart();
     }
 
-    function addNode() {
+    function getIcon(type) {
+        switch (type) {
+            case 'video':
+                return 'url("#videoIcon")';
+            case 'blog':
+                return 'url("#blogIcon")';
+            case 'article':
+                return 'url("#articleIcon")';
+            case 'tutorial':
+                return 'url("#tutorialIcon")'
+            default:
+        }
+    }
+
+    function addNode(type) {
         let node;
         if (nodes.length === 0) {
             node = { id: ++lastNodeId, reflexive: false, x: width / 2, y: height / 4 };
         } else {
             node = { id: ++lastNodeId, reflexive: false, x: nodes[nodes.length - 1].x + 50, y: nodes[nodes.length - 1].y + 50 };
         }
+        node.type = type;
         nodes.push(node);
         restart();
     }
